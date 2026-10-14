@@ -1,0 +1,41 @@
+# Secrets — never commit. See .env.example for the variable names.
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Test and lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Data — reproducible (Kaggle dataset, re-scrapable HTML), so not tracked.
+# NOTE: tests/fixtures/ is intentionally NOT ignored — parser fixtures must be
+# committed so layout changes fail loudly in CI.
+data/
+*.csv
+*.parquet
+
+# Local databases and MLflow run artifacts
+*.db
+*.sqlite3
+mlruns/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
