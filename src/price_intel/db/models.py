@@ -40,6 +40,9 @@ class ScrapeStatus(enum.StrEnum):
     PARSE_FAILED = "parse_failed"
     BLOCKED = "blocked"
     UNCHANGED = "unchanged"
+    # Out of stock: the page loaded fine, there is simply no price to record.
+    # Kept separate from parse_failed so it does not look like a broken layout.
+    UNAVAILABLE = "unavailable"
 
 
 class PredictionStatus(enum.StrEnum):
@@ -55,10 +58,12 @@ def _enum_values(enum_cls: type[enum.Enum]) -> list[str]:
 def _enum(enum_cls: type[enum.Enum], name: str) -> SAEnum:
     # native_enum=False keeps the schema portable and easier to evolve: the
     # column is VARCHAR + CHECK instead of a Postgres type that needs ALTER TYPE.
+    # create_constraint defaults to False in SQLAlchemy 2.x, so set it explicitly.
     return SAEnum(
         enum_cls,
         name=name,
         native_enum=False,
+        create_constraint=True,
         length=32,
         values_callable=_enum_values,
         validate_strings=True,

@@ -1,22 +1,84 @@
 """Start (or reuse) the local dev Postgres and print its URL.
 
-Dev-only fallback for machines without Docker. The server keeps running after
-this script exits, so later commands can connect to it. Data lives in data/pgdata.
+Dev-only fallback for machines without Docker. It uses the Postgres binaries
+bundled with the ``pgserver`` package, but calls ``pg_ctl`` directly: pgserver
+keeps its log inside the data directory, which can hit a Windows file-lock on
+restart. A separate log and a fixed port make this repeatable.
 
     .venv\\Scripts\\python.exe scripts\\dev_db.py
 """
 
+from __future__ import annotations
+
+import os
+import subprocess
 from pathlib import Path
 
 import pgserver
 
-PGDATA = Path(__file__).resolve().parent.parent / "data" / "pgdata"
+HOST = "127.0.0.1"
+PORT = 55432
+DB_USER = "postgres"
+DATABASE = "postgres"
+
+ROOT = Path(__file__).resolve().parent.parent
+PGDATA = ROOT / "data" / "pgdata"
+LOG = ROOT / "data" / "pg.log"
+BIN = Path(pgserver.__file__).parent / "pginstall" / "bin"
+EXE = ".exe" if os.name == "nt" else ""
+
+
+def database_url() -> str:
+    return f"postgresql://{DB_USER}:@{HOST}:{PORT}/{DATABASE}"
+
+
+def is_running() -> bool:
+    import psycopg
+
+    try:
+        with psycopg.connect(database_url(), connect_timeout=2):
+            return True
+    except psycopg.OperationalError:
+        return False
 
 
 def main() -> None:
     PGDATA.parent.mkdir(parents=True, exist_ok=True)
-    server = pgserver.get_server(PGDATA, cleanup_mode=None)
-    print(server.get_uri())
+
+    if not (PGDATA / "PG_VERSION").exists():
+        subprocess.run(
+            [
+                str(BIN / f"initdb{EXE}"),
+                "--auth=trust",
+                "--auth-local=trust",
+                "--encoding=utf8",
+                "-U",
+                DB_USER,
+                "-D",
+                str(PGDATA),
+            ],
+            check=True,
+        )
+
+    if not is_running():
+        subprocess.run(
+            [
+                str(BIN / f"pg_ctl{EXE}"),
+                "-D",
+                str(PGDATA),
+                "-w",
+                "-t",
+                "60",
+                "-o",
+                f"-h {HOST} -p {PORT}",
+                "-l",
+                str(LOG),
+                "start",
+            ],
+            check=True,
+        )
+
+    print(database_url())
 
 
 if __name__ == "__main__":
