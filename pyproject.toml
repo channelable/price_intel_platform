@@ -19,6 +19,7 @@ dev = [
 # Production and CI still use the Postgres service from docker-compose.yml.
 localdev = [
     "pgserver>=0.1.4",
+    "psutil>=5.9",
 ]
 
 [build-system]

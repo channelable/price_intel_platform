@@ -15,6 +15,9 @@ from price_intel.db.models import PriceHistory, Product, ScrapeStatus, Source
 from price_intel.scrapers import flipkart
 from price_intel.scrapers.base import BlockedError, ParseError
 
+# One entry per host adapter. Amazon will be added here when built.
+_ADAPTERS = {Source.FLIPKART: flipkart}
+
 
 @dataclass(slots=True)
 class ScrapeResult:
@@ -36,12 +39,16 @@ def upsert_product(session: Session, url: str, source: Source) -> Product:
 
 
 def scrape_url(session: Session, url: str, source: Source = Source.FLIPKART) -> ScrapeResult:
-    canonical = flipkart.canonical_url(url)
+    adapter = _ADAPTERS.get(source)
+    if adapter is None:
+        raise ValueError(f"no adapter for source {source!r}")
+
+    canonical = adapter.canonical_url(url)
     product = upsert_product(session, canonical, source)
     attempted_at = datetime.now(UTC)
 
     try:
-        parsed = flipkart.parse_product(flipkart.fetch_html(canonical))
+        parsed = adapter.parse_product(adapter.fetch_html(canonical))
     except (BlockedError, requests.RequestException) as exc:
         return _record_failure(
             session, product, canonical, ScrapeStatus.BLOCKED, attempted_at, str(exc)

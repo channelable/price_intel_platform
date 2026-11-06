@@ -15,6 +15,7 @@ import subprocess
 from pathlib import Path
 
 import pgserver
+import psutil
 
 HOST = "127.0.0.1"
 PORT = 55432
@@ -42,6 +43,20 @@ def is_running() -> bool:
         return False
 
 
+def clear_stale_pid() -> None:
+    """A crash or reboot leaves postmaster.pid behind; pg_ctl refuses to start."""
+    pid_file = PGDATA / "postmaster.pid"
+    if not pid_file.exists():
+        return
+    try:
+        pid = int(pid_file.read_text(encoding="utf-8").splitlines()[0])
+    except (IndexError, ValueError, OSError):
+        pid_file.unlink(missing_ok=True)
+        return
+    if not psutil.pid_exists(pid):
+        pid_file.unlink(missing_ok=True)
+
+
 def main() -> None:
     PGDATA.parent.mkdir(parents=True, exist_ok=True)
 
@@ -61,6 +76,7 @@ def main() -> None:
         )
 
     if not is_running():
+        clear_stale_pid()
         subprocess.run(
             [
                 str(BIN / f"pg_ctl{EXE}"),
