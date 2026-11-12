@@ -1,0 +1,47 @@
+name: Scrape prices
+
+# Manual only for now. The 6-hour schedule is added after this proves
+# that Flipkart does not block GitHub-hosted runners.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never let a manual run and a scheduled run overlap.
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Ensure schema exists
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m price_intel.db.init_db
+
+      - name: Scrape active products
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONUNBUFFERED: "1"
+        run: python scripts/scrape_all.py
+
+      - name: Upload scrape log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-log
+          path: data/scrape.log
+          if-no-files-found: ignore
