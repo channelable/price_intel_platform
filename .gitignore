@@ -28,6 +28,8 @@ htmlcov/
 data/
 *.csv
 *.parquet
+# The seed catalog is source, not scraped data: keep it versioned.
+!seeds/products.csv
 
 # Local databases and MLflow run artifacts
 *.db
