@@ -1,9 +1,11 @@
 name: Scrape prices
 
-# Manual only for now. The 6-hour schedule is added after this proves
-# that Flipkart does not block GitHub-hosted runners.
 on:
   workflow_dispatch:
+  schedule:
+    # UTC. :23 keeps it off the top of the hour; GitHub may delay further
+    # under load, which adds natural jitter.
+    - cron: "23 */6 * * *"
 
 permissions:
   contents: read
