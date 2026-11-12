@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
+from types import ModuleType
 
 import requests
 from sqlalchemy import select
@@ -17,6 +18,14 @@ from price_intel.scrapers.base import BlockedError, ParseError
 
 # One entry per host adapter. Amazon will be added here when built.
 _ADAPTERS = {Source.FLIPKART: flipkart}
+
+
+def get_adapter(source: Source) -> ModuleType:
+    """Return the host adapter for a source, or raise a clear error."""
+    adapter = _ADAPTERS.get(source)
+    if adapter is None:
+        raise ValueError(f"no adapter for source {source!r}")
+    return adapter
 
 
 @dataclass(slots=True)
@@ -39,10 +48,7 @@ def upsert_product(session: Session, url: str, source: Source) -> Product:
 
 
 def scrape_url(session: Session, url: str, source: Source = Source.FLIPKART) -> ScrapeResult:
-    adapter = _ADAPTERS.get(source)
-    if adapter is None:
-        raise ValueError(f"no adapter for source {source!r}")
-
+    adapter = get_adapter(source)
     canonical = adapter.canonical_url(url)
     product = upsert_product(session, canonical, source)
     attempted_at = datetime.now(UTC)

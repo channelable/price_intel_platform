@@ -32,6 +32,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m price_intel.db.init_db
 
+      - name: Sync seed catalog
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/seed_products.py
+
       - name: Scrape active products
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
