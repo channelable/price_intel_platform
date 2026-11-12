@@ -52,3 +52,17 @@ jobs:
           name: scrape-log
           path: data/scrape.log
           if-no-files-found: ignore
+
+      # Dead-man's switch: a missed ping (failed run or disabled schedule)
+      # triggers an alert in Healthchecks.io.
+      - name: Ping Healthchecks on success
+        if: success()
+        env:
+          HC_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+        run: curl -fsS -m 10 --retry 3 "$HC_URL" > /dev/null || true
+
+      - name: Ping Healthchecks on failure
+        if: failure()
+        env:
+          HC_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+        run: curl -fsS -m 10 --retry 3 "$HC_URL/fail" > /dev/null || true
