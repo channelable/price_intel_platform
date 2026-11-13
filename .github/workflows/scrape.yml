@@ -45,6 +45,13 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: python scripts/scrape_all.py
 
+      # The scrape just touched every active product, so anything older than
+      # an hour means the run skipped it. The API will use the 8h default.
+      - name: Check data freshness
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/check_freshness.py --max-age-hours 1
+
       - name: Upload scrape log
         if: always()
         uses: actions/upload-artifact@v4
