@@ -51,9 +51,11 @@ no-ops. Alerts are one-shot, not per run. Use a channel you will actually see;
 GitHub failure emails alone cannot report a run that never started.
 
 **Data quality — `scripts/check_freshness.py`.** Runs after the scrape. Fails
-if any active product was not attempted in the last hour, is
-`blocked`/`parse_failed`, or if no active product has a current price. The 1h
-threshold checks run completeness; the API `/health` will reuse
+if any active product was not attempted in the last hour, if more than 5% of
+active products are `blocked`/`parse_failed`, if one category exceeds 10%
+failed (with at least 2 failures), or if no active product has a current
+price. `unavailable` is a legitimate stock state and is not counted as a
+failure. The 1h threshold checks run completeness; the API `/health` will reuse
 `get_freshness()` with the 8h default (6h cadence + 2h buffer) for user-facing
 freshness. This is what makes a green run mean "fresh data", not just "the
 cron fired".
@@ -65,8 +67,9 @@ cron fired".
   freshness check catches a run that wrote nothing useful.
 - GitHub disables scheduled workflows after 60 days of repo inactivity on
   public repos. The external check catches that too.
-- Flipkart blocks or changes layout → `blocked`/`parse_failed`; the job fails
-  and no price row is written.
+- Flipkart blocks or changes layout → `blocked`/`parse_failed`; no price row is
+  written. A few transient failures are tolerated within the 5% budget; a
+  parser break affecting one category still trips the 10% category guard.
 - All products unavailable → `with_price = 0`; the job fails. `unavailable` is
   a legitimate state and is kept separate from `parse_failed`.
 - Neon outage or a bad secret → the job fails; Healthchecks sees `/fail` or a
@@ -94,14 +97,12 @@ cron fired".
 2. **What are the failure modes of Actions cron?** Best-effort delays and
    disabled schedules after 60 days of repo inactivity. Hence the external
    dead-man's switch.
-3. **How do you know the data is fresh?** `check_freshness.py` fails on
-   stale/blocked/no-price; `/health` will expose the same summary. Healthchecks
-   covers "never ran".
+3. **How do you know the data is fresh?** `check_freshness.py` fails on stale
+   data, failure-budget overruns, or no price; `/health` will expose the same
+   summary. Healthchecks covers "never ran".
 4. **Why not GitHub failure emails?** They only cover runs that failed; they
    say nothing when the schedule is disabled.
-5. **What changes as the catalog grows past 100?** The current check fails on
-   any `blocked`/`parse_failed` product; at 103 one transient page could fail
-   the whole run. The next step is a small failure budget (for example, fail
-   above 5%) while keeping `price_history` free of parse failures. Keep
-   run-completeness and the external check; add per-product staleness to
-   `/health`.
+5. **Why a failure budget instead of failing on any error?** At 100+ products,
+   one transient 429/timeout is noise. A 5% overall budget plus a 10% category
+   guard catches systemic breakage without alert fatigue. `unavailable` is
+   tracked separately, so an out-of-stock page is not called a parser failure.

@@ -46,11 +46,16 @@ jobs:
         run: python scripts/scrape_all.py
 
       # The scrape just touched every active product, so anything older than
-      # an hour means the run skipped it. The API will use the 8h default.
+      # an hour means the run skipped it. A small failure budget tolerates
+      # transient blocks; the category guard catches a broken parser.
       - name: Check data freshness
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python scripts/check_freshness.py --max-age-hours 1
+        run: >-
+          python scripts/check_freshness.py
+          --max-age-hours 1
+          --max-failed-pct 5
+          --max-category-failed-pct 10
 
       - name: Upload scrape log
         if: always()
