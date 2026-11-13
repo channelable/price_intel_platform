@@ -38,7 +38,13 @@ This is the **only** way data enters the system. There is no historical feed to 
 
 ## Tests
 
-`tests/test_flipkart_parser.py` parses a committed real page (`tests/fixtures/flipkart/`), rejects a page with no JSON-LD, and checks URL canonicalization. Run with `pytest -q`.
+`tests/test_flipkart_parser.py` parses one fixture per supported category
+(`tests/fixtures/flipkart/`), rejects a page with no JSON-LD, and checks URL
+canonicalization. The smartphone fixture is a full real page; the laptop, audio,
+wearable, and TV fixtures are minimized to the real Product JSON-LD fields and
+MRP block the parser uses. That keeps the repo small and avoids committing page
+nonces or review text, while the full-page case stays covered. Run with
+`pytest -q`.
 
 ## Likely interview questions
 
