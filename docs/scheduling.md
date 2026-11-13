@@ -19,6 +19,12 @@ cron: "23 */6 * * *"
 `seed_products.py` is additive and idempotent: existing products keep their
 title, price, and active flag; only the category can change.
 
+The catalog is 103 products as of 2026-11-13: 100 new candidates plus the
+original 3. The first full run of that catalog finished at 12:22 UTC with 99
+`ok`, 3 `unchanged`, 1 `unavailable`, and 0 `blocked`/`parse_failed`;
+`check_freshness.py --max-age-hours 1` passed with 102 products holding a
+current price. The one unavailable product stayed unavailable on retry.
+
 The Windows Scheduled Task is disabled and local Postgres is stopped. This is
 the only scheduler now.
 
@@ -93,6 +99,9 @@ cron fired".
    covers "never ran".
 4. **Why not GitHub failure emails?** They only cover runs that failed; they
    say nothing when the schedule is disabled.
-5. **What changes at 100 products?** Keep run-completeness, switch to a
-   failure-rate threshold, add per-product staleness to `/health`, keep the
-   external check.
+5. **What changes as the catalog grows past 100?** The current check fails on
+   any `blocked`/`parse_failed` product; at 103 one transient page could fail
+   the whole run. The next step is a small failure budget (for example, fail
+   above 5%) while keeping `price_history` free of parse failures. Keep
+   run-completeness and the external check; add per-product staleness to
+   `/health`.

@@ -25,7 +25,7 @@ This is the **only** way data enters the system. There is no historical feed to 
 2. **Record flat prices as `unchanged`, don't skip them.** A 7-day average computed only over change-days is biased toward exactly the volatile days. Regular observations keep rolling features honest. *Cost:* a few thousand extra rows — irrelevant.
 3. **A status per attempt: `ok` / `unchanged` / `parse_failed` / `blocked` / `unavailable`.** The first four are in the plan; `unavailable` was added because an out-of-stock page is not a broken layout, and treating it as `parse_failed` would send us chasing bugs that don't exist.
 4. **Canonical URL.** Tracking parameters are stripped but Flipkart's `pid` is kept, so the same product copied from different searches still matches the `UNIQUE (url)` constraint.
-5. **Be polite.** Browser user-agent, `Accept-Language: en-IN`, 2.5–4.5s jitter between products, retries with backoff on 429/5xx, and `403/429` map to `blocked` rather than pretending to succeed.
+5. **Be polite.** Browser user-agent, `Accept-Language: en-IN`, 2.5–5.5s jitter between products, retries with backoff on 429/5xx, and `403/429` map to `blocked` rather than pretending to succeed.
 
 ## What would break it
 
