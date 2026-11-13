@@ -60,6 +60,15 @@ jobs:
           path: data/scrape.log
           if-no-files-found: ignore
 
+      # A missing secret would otherwise make the pings silent no-ops.
+      - name: Verify Healthchecks is configured
+        env:
+          HC_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+        run: |
+          if [ -z "$HC_URL" ]; then
+            echo "::warning::HEALTHCHECKS_PING_URL is not set; liveness pings are disabled"
+          fi
+
       # Dead-man's switch: a missed ping (failed run or disabled schedule)
       # triggers an alert in Healthchecks.io.
       - name: Ping Healthchecks on success
